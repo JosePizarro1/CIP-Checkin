@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Swal from "sweetalert2";
 import { uploadExcel, clearAll } from "@/lib/actions";
 import type { UploadResult } from "@/lib/types";
 
 export default function AdminPage() {
-  const [clearMessage, setClearMessage] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const [uploadState, uploadAction, isUploading] = useActionState(
     async (
@@ -18,19 +19,88 @@ export default function AdminPage() {
     null
   );
 
+  // Show SweetAlert when upload finishes
+  useEffect(() => {
+    if (!uploadState) return;
+    if (uploadState.success) {
+      Swal.fire({
+        icon: "success",
+        title: "Importación completada",
+        html: `
+          <p class="text-lg font-semibold text-green-700 mb-2">✅ Datos importados correctamente</p>
+          <div class="text-gray-600 space-y-1">
+            <p>📥 <strong>${uploadState.counts.inserted}</strong> registros nuevos</p>
+            <p>🔄 <strong>${uploadState.counts.updated}</strong> actualizados</p>
+          </div>
+          ${uploadState.errors.length > 0 ? `<div class="mt-3 p-3 bg-yellow-50 rounded-lg text-sm text-yellow-700">⚠️ ${uploadState.errors.length} error(es) menores</div>` : ""}
+        `,
+        confirmButtonColor: "#1e3a5f",
+        confirmButtonText: "OK",
+      });
+    } else {
+      Swal.fire({
+        icon: "error",
+        title: "Error al importar",
+        text: uploadState.errors.join(", ") || "Ocurrió un error desconocido",
+        confirmButtonColor: "#dc2626",
+        confirmButtonText: "Cerrar",
+      });
+    }
+  }, [uploadState]);
+
   const handleClear = async () => {
-    if (
-      !window.confirm(
-        "¿Está seguro de eliminar todos los datos? Esta acción no se puede deshacer."
-      )
-    )
-      return;
-    const result = await clearAll();
-    setClearMessage(
-      result.success
-        ? "Todos los datos han sido eliminados correctamente."
-        : "Error al eliminar los datos."
-    );
+    const result = await Swal.fire({
+      title: "¿Eliminar todos los datos?",
+      text: "Esta acción no se puede deshacer. Todos los registros se borrarán permanentemente.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Sí, eliminar todo",
+      cancelButtonText: "Cancelar",
+    });
+    if (!result.isConfirmed) return;
+
+    const res = await clearAll();
+    if (res.success) {
+      await Swal.fire({
+        icon: "success",
+        title: "Datos eliminados",
+        text: "Todos los registros han sido eliminados correctamente.",
+        confirmButtonColor: "#1e3a5f",
+        confirmButtonText: "OK",
+      });
+    } else {
+      await Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudieron eliminar los datos. Intente nuevamente.",
+        confirmButtonColor: "#dc2626",
+        confirmButtonText: "Cerrar",
+      });
+    }
+  };
+
+  const handleExport = () => {
+    Swal.fire({
+      title: "Descargando...",
+      html: `
+        <div class="flex flex-col items-center gap-4 py-4">
+          <div class="animate-spin h-10 w-10 border-4 border-blue-900 border-t-transparent rounded-full"></div>
+          <p class="text-gray-600">Generando archivo Excel...</p>
+        </div>
+      `,
+      showConfirmButton: false,
+      allowOutsideClick: false,
+      didOpen: () => {
+        // Create a hidden link to trigger download
+        const link = document.createElement("a");
+        link.href = "/api/export";
+        link.click();
+        // Close swal after a short delay
+        setTimeout(() => Swal.close(), 1500);
+      },
+    });
   };
 
   return (
@@ -56,7 +126,7 @@ export default function AdminPage() {
           <p className="text-sm text-gray-500 mb-4">
             Importar datos desde el archivo de registro del evento.
           </p>
-          <form action={uploadAction} className="space-y-4">
+          <form ref={formRef} action={uploadAction} className="space-y-4">
             <input
               type="file"
               name="file"
@@ -70,34 +140,19 @@ export default function AdminPage() {
               disabled={isUploading}
               className="w-full bg-blue-900 hover:bg-blue-800 disabled:bg-blue-400 text-white font-bold py-3 px-6 rounded-xl transition-colors cursor-pointer disabled:cursor-not-allowed"
             >
-              {isUploading ? "Subiendo..." : "Importar Excel"}
+              {isUploading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Subiendo...
+                </span>
+              ) : (
+                "Importar Excel"
+              )}
             </button>
           </form>
-          {uploadState && (
-            <div className="mt-4 space-y-2">
-              {uploadState.success && (
-                <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                  <p className="text-green-700 font-medium">
-                    Importación completada
-                  </p>
-                  <p className="text-green-600 text-sm mt-1">
-                    {uploadState.counts.inserted} registros importados,{" "}
-                    {uploadState.counts.updated} actualizados
-                  </p>
-                </div>
-              )}
-              {uploadState.errors.length > 0 && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                  <p className="text-red-700 font-medium">Errores:</p>
-                  <ul className="text-red-600 text-sm list-disc list-inside mt-1">
-                    {uploadState.errors.map((err, i) => (
-                      <li key={i}>{err}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
         </section>
 
         {/* Section 2: Clear Data */}
@@ -114,17 +169,6 @@ export default function AdminPage() {
           >
             Eliminar todos los datos
           </button>
-          {clearMessage && (
-            <p
-              className={`mt-3 text-sm text-center font-medium ${
-                clearMessage.includes("Error")
-                  ? "text-red-600"
-                  : "text-green-600"
-              }`}
-            >
-              {clearMessage}
-            </p>
-          )}
         </section>
 
         {/* Section 3: Export */}
@@ -136,12 +180,12 @@ export default function AdminPage() {
             Descargar un archivo Excel con todos los registros y el estado de
             check-in.
           </p>
-          <a
-            href="/api/export"
-            className="block w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-xl text-center transition-colors"
+          <button
+            onClick={handleExport}
+            className="w-full bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-xl text-center transition-colors cursor-pointer"
           >
             Descargar Excel
-          </a>
+          </button>
         </section>
       </main>
 

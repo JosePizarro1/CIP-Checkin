@@ -68,17 +68,18 @@ export default function PersonCard({
       </div>
 
       {/* Dish selection (only if no dish assigned and not already attended) */}
-      {needsDish && !registration.attended && (
+        {needsDish && !registration.attended && (
         <div className="px-6 pb-4">
-          <p className="font-semibold text-gray-700 mb-3">
+          <p className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
+            <span className="text-yellow-500 text-lg">⚠️</span>
             Seleccionar plato:
           </p>
           <div className="flex gap-4">
             <label
               className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${
                 selectedDish === "Pollo"
-                  ? "border-blue-600 bg-blue-50"
-                  : "border-gray-200 hover:border-gray-400"
+                  ? "border-blue-600 bg-blue-50 shadow-md"
+                  : "border-gray-200 hover:border-gray-400 hover:shadow-sm"
               }`}
             >
               <input
@@ -95,8 +96,8 @@ export default function PersonCard({
             <label
               className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${
                 selectedDish === "Chancho"
-                  ? "border-blue-600 bg-blue-50"
-                  : "border-gray-200 hover:border-gray-400"
+                  ? "border-blue-600 bg-blue-50 shadow-md"
+                  : "border-gray-200 hover:border-gray-400 hover:shadow-sm"
               }`}
             >
               <input
