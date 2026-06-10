@@ -36,6 +36,13 @@ yarn-error.log*
 # vercel
 .vercel
 
+# atl (another tool)
+.atl/
+
+# excel data files
+*.xlsm
+~$*
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
