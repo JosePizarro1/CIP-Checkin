@@ -200,11 +200,11 @@ export function buildExportWorkbook(
     r.chapter ?? "",
     r.specialty ?? "",
     r.phone ?? "",
-    r.purchaseDate ? formatDate(r.purchaseDate) : "",
+    r.purchaseDate ? formatDateToLima(r.purchaseDate) : "",
     r.dish ?? "",
     r.source,
     r.attended ? "SI" : "NO",
-    r.checkinTime ? formatDate(r.checkinTime) : "",
+    r.checkinTime ? formatDateToLima(r.checkinTime) : "",
   ]);
 
   const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
@@ -224,7 +224,29 @@ export function buildExportWorkbook(
   return wb;
 }
 
-function formatDate(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+function formatDateToLima(date: Date): string {
+  try {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Lima",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+    
+    const parts = formatter.formatToParts(date);
+    const partMap: Record<string, string> = {};
+    for (const part of parts) {
+      partMap[part.type] = part.value;
+    }
+    
+    return `${partMap.year}-${partMap.month}-${partMap.day} ${partMap.hour}:${partMap.minute}:${partMap.second}`;
+  } catch (err) {
+    // Fallback if Intl fails
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
 }
