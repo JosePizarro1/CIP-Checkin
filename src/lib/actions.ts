@@ -9,8 +9,31 @@ import type {
   CheckinResult,
   UploadResult,
   ClearResult,
+  DashboardStats,
   Registration,
 } from "@/lib/types";
+
+/**
+ * Returns dashboard statistics (counts).
+ */
+export async function getStats(): Promise<DashboardStats> {
+  try {
+    const all = await db.select().from(registrations);
+
+    const total = all.length;
+    const attended = all.filter((r) => r.attended).length;
+    const pending = total - attended;
+    const pollo = all.filter((r) => r.dish?.toLowerCase() === "pollo").length;
+    const chancho = all.filter((r) => r.dish?.toLowerCase() === "chancho").length;
+    const sinPlato = all.filter((r) => !r.dish).length;
+    const registros = all.filter((r) => r.source === "REGISTROS").length;
+    const comprados = all.filter((r) => r.source === "COMPRADOS").length;
+
+    return { total, attended, pending, byDish: { pollo, chancho, sinPlato }, bySource: { registros, comprados } };
+  } catch {
+    return { total: 0, attended: 0, pending: 0, byDish: { pollo: 0, chancho: 0, sinPlato: 0 }, bySource: { registros: 0, comprados: 0 } };
+  }
+}
 
 /**
  * Searches for a registration by ticket number (case-insensitive).

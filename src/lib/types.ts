@@ -41,3 +41,18 @@ export interface UploadResult {
 export interface ClearResult {
   success: boolean;
 }
+
+export interface DashboardStats {
+  total: number;
+  attended: number;
+  pending: number;
+  byDish: {
+    pollo: number;
+    chancho: number;
+    sinPlato: number;
+  };
+  bySource: {
+    registros: number;
+    comprados: number;
+  };
+}
