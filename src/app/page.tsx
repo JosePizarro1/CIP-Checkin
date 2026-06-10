@@ -6,6 +6,7 @@ import Swal from "sweetalert2";
 import SearchForm from "@/components/search-form";
 import PersonCard from "@/components/person-card";
 import type { Registration, SearchResult } from "@/lib/types";
+import { Lock } from "lucide-react";
 
 export default function Home() {
   const [registration, setRegistration] = useState<Registration | null>(null);
@@ -40,13 +41,17 @@ export default function Home() {
         icon: "success",
         title: "¡Asistencia Confirmada!",
         html: `
-          <div class="text-center space-y-4 py-2">
-            <div class="text-6xl animate-bounce">🎉</div>
+          <div class="text-center space-y-4 py-2 font-sans">
+            <div class="flex justify-center">
+              <div class="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 animate-bounce">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle-2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+              </div>
+            </div>
             <p class="text-2xl font-black text-emerald-600 font-display">TICKET Nº ${updated.ticketNumber}</p>
-            <div class="inline-block bg-gray-50 border border-gray-100 rounded-2xl p-4 w-full">
+            <div class="inline-block bg-gray-50 border border-gray-100 rounded-2xl p-4 w-full text-center">
               ${updated.lastName ? `<p class="text-lg font-bold text-gray-800">${updated.lastName}, ${updated.firstName}</p>` : ""}
               ${updated.cip ? `<p class="text-sm text-gray-500 font-mono mt-1">CIP: ${updated.cip}</p>` : ""}
-              ${updated.dish ? `<p class="text-base font-bold text-cip-red mt-2">🍽️ Almuerzo: ${updated.dish}</p>` : ""}
+              ${updated.dish ? `<p class="text-base font-bold text-cip-red mt-2">Almuerzo: ${updated.dish}</p>` : ""}
             </div>
             <p class="text-xs text-gray-400 font-medium uppercase">${new Date().toLocaleString("es-PE")}</p>
           </div>
@@ -121,9 +126,10 @@ export default function Home() {
           <div className="pt-2">
             <Link
               href="/admin"
-              className="text-gray-400 hover:text-cip-red hover:underline transition-colors uppercase tracking-widest text-[10px] font-bold border border-gray-200 hover:border-cip-red/30 rounded-lg px-3 py-1.5 inline-block bg-gray-50/50"
+              className="text-gray-400 hover:text-cip-red hover:underline transition-colors uppercase tracking-widest text-[10px] font-bold border border-gray-200 hover:border-cip-red/30 rounded-lg px-3.5 py-2 inline-flex items-center gap-1.5 bg-gray-50/50"
             >
-              🔐 Administración
+              <Lock className="h-3.5 w-3.5 text-gray-450" />
+              Administración
             </Link>
           </div>
         </div>

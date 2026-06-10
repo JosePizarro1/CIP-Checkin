@@ -215,3 +215,15 @@ export async function clearAll(): Promise<ClearResult> {
     return { success: false };
   }
 }
+
+/**
+ * Returns all registrations in the database.
+ */
+export async function getAllRegistrations(): Promise<Registration[]> {
+  try {
+    const list = await db.select().from(registrations);
+    return list as Registration[];
+  } catch {
+    return [];
+  }
+}
