@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit, Montserrat } from "next/font/google";
 import "./globals.css";
+import AuthWrapper from "@/components/auth-wrapper";
 
 const outfit = Outfit({
   variable: "--font-outfit",
@@ -28,7 +29,9 @@ export default function RootLayout({
       lang="es"
       className={`${outfit.variable} ${montserrat.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        <AuthWrapper>{children}</AuthWrapper>
+      </body>
     </html>
   );
 }
