@@ -37,7 +37,7 @@ export default function ConfirmButton({
         icon: "error",
         title: "Error al confirmar",
         text: state.message,
-        confirmButtonColor: "#dc2626",
+        confirmButtonColor: "#8b1b1b",
         confirmButtonText: "Cerrar",
       });
     }
@@ -48,12 +48,12 @@ export default function ConfirmButton({
       <button
         type="submit"
         disabled={isPending}
-        className="w-full bg-green-600 hover:bg-green-500 disabled:bg-green-300 text-white text-xl font-bold py-4 px-8 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed active:scale-[0.98]"
+        className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] shadow-lg hover:shadow-emerald-600/20 disabled:bg-emerald-300 text-white text-lg font-bold py-4 px-8 rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed font-display tracking-wider uppercase"
       >
         {isPending ? (
           <>
             <svg
-              className="animate-spin h-6 w-6"
+              className="animate-spin h-6 w-6 text-white"
               viewBox="0 0 24 24"
               fill="none"
             >

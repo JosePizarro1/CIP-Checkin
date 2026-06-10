@@ -24,8 +24,8 @@ export default function Home() {
           icon: "error",
           title: "Ticket no encontrado",
           text: result.error,
-          confirmButtonColor: "#1e3a5f",
-          confirmButtonText: "Reintentar",
+          confirmButtonColor: "#8b1b1b",
+          confirmButtonText: "Entendido",
           timer: 4000,
           timerProgressBar: true,
         });
@@ -40,17 +40,18 @@ export default function Home() {
         icon: "success",
         title: "¡Asistencia Confirmada!",
         html: `
-          <div class="text-center space-y-3 py-2">
-            <div class="text-6xl">✅</div>
-            <p class="text-lg font-bold text-green-700">Ticket #${updated.ticketNumber}</p>
-            <div class="text-gray-600 space-y-1">
-              ${updated.lastName ? `<p>${updated.lastName}, ${updated.firstName}</p>` : ""}
-              ${updated.dish ? `<p>🍽️ Plato: <strong>${updated.dish}</strong></p>` : ""}
+          <div class="text-center space-y-4 py-2">
+            <div class="text-6xl animate-bounce">🎉</div>
+            <p class="text-2xl font-black text-emerald-600 font-display">TICKET Nº ${updated.ticketNumber}</p>
+            <div class="inline-block bg-gray-50 border border-gray-100 rounded-2xl p-4 w-full">
+              ${updated.lastName ? `<p class="text-lg font-bold text-gray-800">${updated.lastName}, ${updated.firstName}</p>` : ""}
+              ${updated.cip ? `<p class="text-sm text-gray-500 font-mono mt-1">CIP: ${updated.cip}</p>` : ""}
+              ${updated.dish ? `<p class="text-base font-bold text-cip-red mt-2">🍽️ Almuerzo: ${updated.dish}</p>` : ""}
             </div>
-            <p class="text-sm text-green-600">${new Date().toLocaleString("es-PE")}</p>
+            <p class="text-xs text-gray-400 font-medium uppercase">${new Date().toLocaleString("es-PE")}</p>
           </div>
         `,
-        confirmButtonColor: "#1e3a5f",
+        confirmButtonColor: "#8b1b1b",
         confirmButtonText: "Buscar otro ticket",
         allowOutsideClick: false,
       });
@@ -59,22 +60,43 @@ export default function Home() {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-blue-50 to-gray-50">
-      <header className="bg-blue-900 text-white py-6 px-4 shadow-lg">
-        <h1 className="text-2xl font-bold text-center">CIP Check-in</h1>
-        <p className="text-blue-200 text-sm text-center mt-1">
-          Almuerzo Ingeniero&apos;s Day
-        </p>
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-red-50/40 via-gray-50/50 to-gray-100/30">
+      <header className="bg-cip-red text-white py-6 px-4 shadow-xl border-b-4 border-cip-gold relative overflow-hidden">
+        {/* Abstract glowing effect */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(212,175,55,0.15),transparent_60%)] pointer-events-none" />
+        
+        <div className="max-w-lg mx-auto flex flex-col items-center gap-3">
+          {/* Logo container */}
+          <div className="bg-white rounded-full p-2.5 shadow-md border border-cip-gold/20 flex items-center justify-center">
+            <img
+              src="https://www.ciptacna.org.pe/web/wp-content/uploads/2020/09/cropped-Logo-de-cabecera-de-la-pagina-web-ultimo-1.png"
+              alt="Logo CIP Tacna"
+              className="h-16 w-auto object-contain"
+            />
+          </div>
+          
+          <div className="text-center">
+            <h1 className="text-2xl font-black font-display tracking-wide uppercase">
+              CIP Check-in
+            </h1>
+            <div className="flex items-center justify-center gap-1.5 mt-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-cip-gold animate-ping" />
+              <p className="text-cip-gold font-bold text-xs uppercase tracking-widest font-display">
+                Almuerzo Día del Ingeniero
+              </p>
+            </div>
+          </div>
+        </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-start p-4 pt-16">
+      <main className="flex-1 flex flex-col items-center justify-start p-4 pt-12 md:pt-16">
         <div className="w-full max-w-lg">
           {!registration ? (
             <>
               <SearchForm onResult={handleSearchResult} />
               {error && !error.includes("no encontrado") && (
-                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-center animate-fadeIn">
-                  <p className="text-red-600 font-medium">{error}</p>
+                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-2xl text-center animate-fadeIn shadow-sm">
+                  <p className="text-red-600 font-bold text-sm font-display">{error}</p>
                 </div>
               )}
             </>
@@ -88,14 +110,23 @@ export default function Home() {
         </div>
       </main>
 
-      <footer className="bg-white border-t border-gray-200 py-4 text-center text-sm text-gray-500">
-        <p>CIP - Colegio de Ingenieros del Perú</p>
-        <Link
-          href="/admin"
-          className="text-xs text-gray-400 hover:text-gray-600 underline mt-1 inline-block"
-        >
-          Administración
-        </Link>
+      <footer className="bg-white border-t border-gray-100 py-6 text-center text-xs text-gray-400 font-medium">
+        <div className="max-w-lg mx-auto space-y-2">
+          <p className="uppercase tracking-wider font-display text-gray-500 font-bold">
+            CIP - Consejo Departamental de Tacna
+          </p>
+          <p className="text-[10px] text-gray-400">
+            © {new Date().getFullYear()} — Gestión 2025-2027
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/admin"
+              className="text-gray-400 hover:text-cip-red hover:underline transition-colors uppercase tracking-widest text-[10px] font-bold border border-gray-200 hover:border-cip-red/30 rounded-lg px-3 py-1.5 inline-block bg-gray-50/50"
+            >
+              🔐 Administración
+            </Link>
+          </div>
+        </div>
       </footer>
     </div>
   );

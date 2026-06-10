@@ -1,21 +1,31 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fcfbfa;
+  --foreground: #1e1e1e;
+  
+  --cip-red: #8b1b1b;
+  --cip-red-hover: #731414;
+  --cip-gold: #d4af37;
+  --cip-gold-light: #fdfbf0;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-cip-red: var(--cip-red);
+  --color-cip-red-hover: var(--cip-red-hover);
+  --color-cip-gold: var(--cip-gold);
+  --color-cip-gold-light: var(--cip-gold-light);
+  
+  --font-sans: var(--font-outfit), sans-serif;
+  --font-display: var(--font-montserrat), sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
 
 @keyframes fadeIn {
@@ -25,4 +35,15 @@ body {
 
 @utility animate-fadeIn {
   animation: fadeIn 0.3s ease-out;
+}
+
+/* SweetAlert2 Theme Overrides */
+.swal2-popup {
+  font-family: var(--font-sans) !important;
+  border-radius: 1.5rem !important;
+}
+
+.swal2-title {
+  font-family: var(--font-display) !important;
+  font-weight: 700 !important;
 }

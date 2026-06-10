@@ -21,65 +21,77 @@ export default function PersonCard({
   const needsDish = !registration.dish;
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden relative animate-fadeIn">
+      {/* Decorative gold line */}
+      <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-cip-gold via-yellow-400 to-cip-gold" />
+      
       {/* Header with ticket number */}
-      <div className="bg-blue-900 text-white p-4 text-center">
-        <p className="text-xs uppercase tracking-wider opacity-80">
-          NRO TICKET
+      <div className="bg-cip-red text-white pt-8 pb-6 px-6 text-center relative">
+        <p className="text-xs uppercase tracking-widest font-bold text-cip-gold/90 font-display">
+          Ticket de Invitación
         </p>
-        <p className="text-3xl font-bold tracking-wider">
-          {registration.ticketNumber}
+        <p className="text-4xl font-black tracking-wider mt-1 font-display">
+          Nº {registration.ticketNumber}
         </p>
+        
+        {/* Ticket side cutouts */}
+        <div className="absolute -left-3 bottom-0 w-6 h-6 rounded-full bg-gray-50 border border-gray-100 shadow-[inset_-2px_0_4px_rgba(0,0,0,0.02)]" />
+        <div className="absolute -right-3 bottom-0 w-6 h-6 rounded-full bg-gray-50 border border-gray-100 shadow-[inset_2px_0_4px_rgba(0,0,0,0.02)]" />
       </div>
 
       {/* Person data */}
-      <div className="p-6 space-y-3">
-        <DataRow label="CIP" value={registration.cip} />
+      <div className="p-6 space-y-4 border-b border-dashed border-gray-100">
+        <div className="grid grid-cols-2 gap-4">
+          <DataRow label="CIP" value={registration.cip} valueClass="font-bold text-cip-red text-lg" />
+          <DataRow label="CAPÍTULO" value={registration.chapter} />
+        </div>
+        
         <DataRow
-          label="APELLIDOS, NOMBRES"
+          label="Apellidos, Nombres"
           value={
             registration.lastName
               ? `${registration.lastName}, ${registration.firstName}`
               : "—"
           }
+          valueClass="text-gray-900 font-bold text-lg"
         />
-        {registration.chapter && (
-          <DataRow label="CAPÍTULO" value={registration.chapter} />
-        )}
+
         {registration.specialty && (
           <DataRow label="ESPECIALIDAD" value={registration.specialty} />
         )}
-        {registration.phone && (
-          <DataRow label="TELÉFONO" value={registration.phone} />
+        
+        <div className="grid grid-cols-2 gap-4">
+          {registration.phone && (
+            <DataRow label="TELÉFONO" value={registration.phone} />
+          )}
+          <DataRow
+            label="PLATO ELEGIDO"
+            value={registration.dish || "Pendiente de selección"}
+            valueClass={!registration.dish ? "text-red-500 font-bold" : "text-green-600 font-bold"}
+          />
+        </div>
+
+        {registration.purchaseDate && (
+          <DataRow
+            label="FECHA DE COMPRA / REGISTRO"
+            value={formatDateTime(registration.purchaseDate)}
+          />
         )}
-        <DataRow
-          label="PLATO"
-          value={registration.dish || "No seleccionado"}
-          valueClass={!registration.dish ? "text-red-600 font-bold" : ""}
-        />
-        <DataRow
-          label="FECHA Y HORA"
-          value={
-            registration.purchaseDate
-              ? formatDateTime(registration.purchaseDate)
-              : "—"
-          }
-        />
       </div>
 
       {/* Dish selection (only if no dish assigned and not already attended) */}
-        {needsDish && !registration.attended && (
-        <div className="px-6 pb-4">
-          <p className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-            <span className="text-yellow-500 text-lg">⚠️</span>
-            Seleccionar plato:
+      {needsDish && !registration.attended && (
+        <div className="px-6 py-5 bg-gray-50/50 border-b border-gray-100">
+          <p className="font-bold text-gray-700 mb-3 flex items-center gap-2 font-display text-sm uppercase tracking-wider">
+            <span className="text-cip-gold text-lg">⚠️</span>
+            Seleccionar almuerzo obligatoriamente:
           </p>
           <div className="flex gap-4">
             <label
-              className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+              className={`flex-1 flex flex-col items-center justify-center gap-1 p-4 rounded-2xl border-2 cursor-pointer transition-all active:scale-95 ${
                 selectedDish === "Pollo"
-                  ? "border-blue-600 bg-blue-50 shadow-md"
-                  : "border-gray-200 hover:border-gray-400 hover:shadow-sm"
+                  ? "border-cip-gold bg-cip-gold-light/40 shadow-md scale-[1.02]"
+                  : "border-gray-200 bg-white hover:border-cip-red/30 hover:shadow-sm"
               }`}
             >
               <input
@@ -90,14 +102,15 @@ export default function PersonCard({
                 onChange={(e) => setSelectedDish(e.target.value)}
                 className="sr-only"
               />
-              <span className="text-2xl">🍗</span>
-              <span className="font-medium text-lg">Pollo</span>
+              <span className="text-3xl">🍗</span>
+              <span className="font-bold text-gray-800 text-base font-display">Pollo</span>
+              <span className="text-[10px] text-gray-400 font-medium uppercase">Almuerzo</span>
             </label>
             <label
-              className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+              className={`flex-1 flex flex-col items-center justify-center gap-1 p-4 rounded-2xl border-2 cursor-pointer transition-all active:scale-95 ${
                 selectedDish === "Chancho"
-                  ? "border-blue-600 bg-blue-50 shadow-md"
-                  : "border-gray-200 hover:border-gray-400 hover:shadow-sm"
+                  ? "border-cip-gold bg-cip-gold-light/40 shadow-md scale-[1.02]"
+                  : "border-gray-200 bg-white hover:border-cip-red/30 hover:shadow-sm"
               }`}
             >
               <input
@@ -108,32 +121,35 @@ export default function PersonCard({
                 onChange={(e) => setSelectedDish(e.target.value)}
                 className="sr-only"
               />
-              <span className="text-2xl">🐷</span>
-              <span className="font-medium text-lg">Chancho</span>
+              <span className="text-3xl">🐷</span>
+              <span className="font-bold text-gray-800 text-base font-display">Chancho</span>
+              <span className="text-[10px] text-gray-400 font-medium uppercase">Almuerzo</span>
             </label>
           </div>
         </div>
       )}
 
       {/* Action area */}
-      <div className="p-6 pt-0 space-y-3">
+      <div className="p-6 space-y-4">
         {registration.attended ? (
-          <div className="text-center p-4 bg-green-50 rounded-xl border border-green-200">
-            <p className="text-green-700 text-xl font-bold">
-              ✓ Ya registrado
+          <div className="text-center p-5 bg-green-50 rounded-2xl border border-green-200 animate-fadeIn">
+            <p className="text-green-700 text-xl font-bold flex items-center justify-center gap-2 font-display">
+              <span>✓</span> ASISTENCIA REGISTRADA
             </p>
             {registration.checkinTime && (
-              <p className="text-green-600 text-sm mt-1">
-                Hora: {formatDateTime(registration.checkinTime)}
+              <p className="text-green-600 text-xs mt-1.5 uppercase font-medium tracking-wide">
+                Ingreso: {formatDateTime(registration.checkinTime)}
               </p>
             )}
           </div>
         ) : (
           <>
             {needsDish && !selectedDish ? (
-              <p className="text-red-500 text-sm text-center">
-                Seleccione un plato para continuar
-              </p>
+              <div className="p-4 bg-red-50 rounded-xl border border-red-100 text-center animate-fadeIn">
+                <p className="text-red-500 text-sm font-semibold">
+                  Debés seleccionar una opción de plato para continuar
+                </p>
+              </div>
             ) : (
               <ConfirmButton
                 ticketNumber={registration.ticketNumber}
@@ -153,9 +169,9 @@ export default function PersonCard({
 
         <button
           onClick={onBack}
-          className="w-full text-gray-500 hover:text-gray-700 text-sm py-2 transition-colors cursor-pointer"
+          className="w-full text-gray-400 hover:text-cip-red text-xs uppercase tracking-widest font-bold py-2.5 transition-colors cursor-pointer font-display text-center"
         >
-          ← Buscar otro ticket
+          ← Volver a buscar ticket
         </button>
       </div>
     </div>
