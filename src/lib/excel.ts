@@ -1,8 +1,21 @@
 import * as XLSX from "xlsx";
 import type { RegistrationInput, Registration } from "./types";
 
-/** Column indices for the REGISTROS sheet */
-const REGISTROS_COLS = {
+/** Column aliases for REGISTROS sheet */
+const REGISTROS_ALIASES = {
+  TICKET: ["nroticket", "ticket", "numeroticket", "noticket", "nro", "n", "nroticketcorrelativo"],
+  CIP: ["cip", "colegiado", "colegio"],
+  LAST_NAME: ["apellidos", "apellido", "lastnames", "lastname"],
+  FIRST_NAME: ["nombres", "nombre", "firstnames", "firstname"],
+  CHAPTER: ["capitulo", "capitulos", "chapter"],
+  SPECIALTY: ["especialidad", "especialidades", "specialty", "speciality"],
+  PHONE: ["telefono", "celular", "telefonocelular", "phone", "telef", "telf"],
+  DATE: ["fechayhora", "fecha", "hora", "fechahora", "date", "datetime"],
+  DISH: ["plato", "platoelegido", "almuerzo", "dish", "comida"],
+};
+
+/** Default fallbacks for REGISTROS if headers aren't detected */
+const REGISTROS_FALLBACKS = {
   TICKET: 0,
   CIP: 1,
   LAST_NAME: 2,
@@ -12,28 +25,29 @@ const REGISTROS_COLS = {
   PHONE: 6,
   DATE: 7,
   DISH: 8,
-} as const;
+};
 
-/** Number of meaningful columns in REGISTROS (skip aggregation columns) */
-const REGISTROS_COL_COUNT = 9;
+/** Column aliases for COMPRADOS sheet */
+const COMPRADOS_ALIASES = {
+  TICKET: ["nroticket", "ticket", "numeroticket", "noticket", "nro", "n"],
+  CIP: ["cip", "colegiado", "colegio"],
+  DATE: ["fechayhora", "fecha", "hora", "fechahora", "date", "datetime"],
+  DISH: ["plato", "platoelegido", "almuerzo", "dish", "comida"],
+};
 
-/** Column indices for the COMPRADOS sheet */
-const COMPRADOS_COLS = {
+/** Default fallbacks for COMPRADOS if headers aren't detected */
+const COMPRADOS_FALLBACKS = {
   TICKET: 0,
   CIP: 1,
   DATE: 2,
   DISH: 3,
-} as const;
-
-/** Number of meaningful columns in COMPRADOS (skip aggregation columns) */
-const COMPRADOS_COL_COUNT = 4;
+};
 
 /**
  * Converts an Excel serial date number to a JavaScript Date object.
  * Excel serial date 1 = 1900-01-01.
  */
 function serialToDate(serial: number): Date {
-  // Excel epoch is 1900-01-01, but there's the famous leap-year bug
   const epoch = new Date(1899, 11, 30);
   const days = Math.floor(serial);
   const fractional = serial - days;
@@ -51,48 +65,133 @@ function cellToString(value: unknown): string | null {
 }
 
 /**
+ * Cleans numeric values (like ticket number or CIP) to strip trailing decimals.
+ */
+function cleanNumericString(value: unknown): string | null {
+  const str = cellToString(value);
+  if (!str) return null;
+  if (/^\d+\.0$/.test(str)) {
+    return str.split(".")[0];
+  }
+  return str;
+}
+
+/**
+ * Truncates a string to fit within DB limits.
+ */
+function truncate(str: string | null, length: number): string | null {
+  if (!str) return null;
+  return str.substring(0, length);
+}
+
+/**
+ * Parses any date cell value (serial, string, Date).
+ */
+function parseDateCell(value: unknown): Date | null {
+  if (value instanceof Date) {
+    return isNaN(value.getTime()) ? null : value;
+  }
+  if (typeof value === "number") {
+    return serialToDate(value);
+  }
+  if (typeof value === "string") {
+    const parsed = Date.parse(value.trim());
+    if (!isNaN(parsed)) {
+      return new Date(parsed);
+    }
+  }
+  return null;
+}
+
+/**
+ * Normalizes a header string for matching.
+ */
+function normalizeHeader(val: unknown): string {
+  if (val === null || val === undefined) return "";
+  return String(val)
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove accents
+    .replace(/[^a-z0-9]/g, ""); // Keep only alphanumeric
+}
+
+/**
+ * Finds column indices dynamically by matching headers against aliases.
+ */
+function findColumnIndices(
+  headers: unknown[],
+  expected: Record<string, string[]>,
+  fallbacks: Record<string, number>
+): Record<string, number> {
+  const mapping: Record<string, number> = {};
+  
+  // Initialize mapping
+  for (const key of Object.keys(expected)) {
+    mapping[key] = -1;
+  }
+
+  for (let i = 0; i < headers.length; i++) {
+    const norm = normalizeHeader(headers[i]);
+    if (!norm) continue;
+
+    for (const [key, aliases] of Object.entries(expected)) {
+      if (aliases.includes(norm)) {
+        mapping[key] = i;
+        break;
+      }
+    }
+  }
+
+  // Fallback if not found
+  for (const key of Object.keys(expected)) {
+    if (mapping[key] === -1) {
+      mapping[key] = fallbacks[key];
+    }
+  }
+
+  return mapping;
+}
+
+/**
  * Parses the REGISTROS sheet: returns registration inputs with source="REGISTROS".
  */
-function parseRegistrosSheet(
-  sheet: XLSX.WorkSheet
-): RegistrationInput[] {
-  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+function parseRegistrosSheet(sheet: XLSX.WorkSheet): RegistrationInput[] {
+  const allRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
     header: 1,
     defval: null,
-    range: 1, // skip header row (index 0)
   });
 
+  if (allRows.length === 0) return [];
+
+  const headers = allRows[0];
+  const dataRows = allRows.slice(1);
+
+  const cols = findColumnIndices(headers, REGISTROS_ALIASES, REGISTROS_FALLBACKS);
   const results: RegistrationInput[] = [];
 
-  for (const row of rows) {
+  for (const row of dataRows) {
     if (!Array.isArray(row)) continue;
 
-    // Skip completely empty rows
-    const ticketCell = row[REGISTROS_COLS.TICKET];
+    const ticketCell = row[cols.TICKET];
     if (ticketCell === null || ticketCell === undefined) continue;
 
-    const trimmed = row.slice(0, REGISTROS_COL_COUNT);
-
-    const ticketNumber = cellToString(trimmed[REGISTROS_COLS.TICKET]);
+    const ticketNumber = truncate(cleanNumericString(ticketCell), 20);
     if (!ticketNumber) continue;
 
-    let purchaseDate: Date | null = null;
-    const dateCell = trimmed[REGISTROS_COLS.DATE];
-    if (typeof dateCell === "number") {
-      purchaseDate = serialToDate(dateCell);
-    }
+    const purchaseDate = parseDateCell(row[cols.DATE]);
 
     results.push({
       ticketNumber,
       source: "REGISTROS",
-      cip: cellToString(trimmed[REGISTROS_COLS.CIP]),
-      lastName: cellToString(trimmed[REGISTROS_COLS.LAST_NAME]),
-      firstName: cellToString(trimmed[REGISTROS_COLS.FIRST_NAME]),
-      chapter: cellToString(trimmed[REGISTROS_COLS.CHAPTER]),
-      specialty: cellToString(trimmed[REGISTROS_COLS.SPECIALTY]),
-      phone: cellToString(trimmed[REGISTROS_COLS.PHONE]),
+      cip: truncate(cleanNumericString(row[cols.CIP]), 20),
+      lastName: truncate(cellToString(row[cols.LAST_NAME]), 200),
+      firstName: truncate(cellToString(row[cols.FIRST_NAME]), 200),
+      chapter: truncate(cellToString(row[cols.CHAPTER]), 200),
+      specialty: truncate(cellToString(row[cols.SPECIALTY]), 200),
+      phone: truncate(cleanNumericString(row[cols.PHONE]), 20),
       purchaseDate,
-      dish: cellToString(trimmed[REGISTROS_COLS.DISH]),
+      dish: truncate(cellToString(row[cols.DISH]), 20),
     });
   }
 
@@ -101,47 +200,43 @@ function parseRegistrosSheet(
 
 /**
  * Parses the COMPRADOS sheet: returns registration inputs with source="COMPRADOS".
- * This sheet only has ticket number, CIP, date, and dish.
  */
-function parseCompradosSheet(
-  sheet: XLSX.WorkSheet
-): RegistrationInput[] {
-  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+function parseCompradosSheet(sheet: XLSX.WorkSheet): RegistrationInput[] {
+  const allRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
     header: 1,
     defval: null,
-    range: 1, // skip header row
   });
 
+  if (allRows.length === 0) return [];
+
+  const headers = allRows[0];
+  const dataRows = allRows.slice(1);
+
+  const cols = findColumnIndices(headers, COMPRADOS_ALIASES, COMPRADOS_FALLBACKS);
   const results: RegistrationInput[] = [];
 
-  for (const row of rows) {
+  for (const row of dataRows) {
     if (!Array.isArray(row)) continue;
 
-    const ticketCell = row[COMPRADOS_COLS.TICKET];
+    const ticketCell = row[cols.TICKET];
     if (ticketCell === null || ticketCell === undefined) continue;
 
-    const trimmed = row.slice(0, COMPRADOS_COL_COUNT);
-
-    const ticketNumber = cellToString(trimmed[COMPRADOS_COLS.TICKET]);
+    const ticketNumber = truncate(cleanNumericString(ticketCell), 20);
     if (!ticketNumber) continue;
 
-    let purchaseDate: Date | null = null;
-    const dateCell = trimmed[COMPRADOS_COLS.DATE];
-    if (typeof dateCell === "number") {
-      purchaseDate = serialToDate(dateCell);
-    }
+    const purchaseDate = parseDateCell(row[cols.DATE]);
 
     results.push({
       ticketNumber,
       source: "COMPRADOS",
-      cip: cellToString(trimmed[COMPRADOS_COLS.CIP]),
+      cip: truncate(cleanNumericString(row[cols.CIP]), 20),
       lastName: null,
       firstName: null,
       chapter: null,
       specialty: null,
       phone: null,
       purchaseDate,
-      dish: cellToString(trimmed[COMPRADOS_COLS.DISH]),
+      dish: truncate(cellToString(row[cols.DISH]), 20),
     });
   }
 
@@ -152,19 +247,31 @@ function parseCompradosSheet(
  * Parses an Excel file buffer and returns all registrations from both sheets.
  */
 export function parseExcelFile(buffer: ArrayBuffer): RegistrationInput[] {
-  const workbook = XLSX.read(buffer, { type: "array" });
+  // Use cellDates: true to let SheetJS parse dates automatically
+  const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
 
   const registros: RegistrationInput[] = [];
   const comprados: RegistrationInput[] = [];
 
-  if (workbook.SheetNames.includes("REGISTROS")) {
-    const sheet = workbook.Sheets["REGISTROS"];
+  const sheetNames = workbook.SheetNames;
+
+  // Case-insensitive search for "REGISTROS" and "COMPRADOS"
+  const registrosName = sheetNames.find(n => n.toUpperCase().trim() === "REGISTROS");
+  if (registrosName) {
+    const sheet = workbook.Sheets[registrosName];
     registros.push(...parseRegistrosSheet(sheet));
   }
 
-  if (workbook.SheetNames.includes("COMPRADOS")) {
-    const sheet = workbook.Sheets["COMPRADOS"];
+  const compradosName = sheetNames.find(n => n.toUpperCase().trim() === "COMPRADOS");
+  if (compradosName) {
+    const sheet = workbook.Sheets[compradosName];
     comprados.push(...parseCompradosSheet(sheet));
+  }
+
+  // Fallback: if neither sheet was found, check if there's just a single sheet and parse it as REGISTROS
+  if (!registrosName && !compradosName && sheetNames.length === 1) {
+    const sheet = workbook.Sheets[sheetNames[0]];
+    registros.push(...parseRegistrosSheet(sheet));
   }
 
   return [...registros, ...comprados];

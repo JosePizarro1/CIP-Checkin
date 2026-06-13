@@ -28,6 +28,7 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${outfit.variable} ${montserrat.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-sans">
         <AuthWrapper>{children}</AuthWrapper>

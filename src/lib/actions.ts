@@ -129,8 +129,6 @@ export async function confirmCheckin(
  */
 export async function uploadExcel(formData: FormData): Promise<UploadResult> {
   const errors: string[] = [];
-  let inserted = 0;
-  let updated = 0;
 
   try {
     const file = formData.get("file");
@@ -145,56 +143,46 @@ export async function uploadExcel(formData: FormData): Promise<UploadResult> {
       return { success: false, counts: { inserted: 0, updated: 0 }, errors: ["No se encontraron registros en el archivo"] };
     }
 
+    // Deduplicate inputs by ticketNumber (keep the last occurrence to avoid duplicate key conflicts in a single query)
+    const uniqueInputsMap = new Map<string, typeof inputs[number]>();
     for (const input of inputs) {
-      try {
-        // Check if ticket already exists
-        const existing = await db
-          .select({ id: registrations.id })
-          .from(registrations)
-          .where(eq(registrations.ticketNumber, input.ticketNumber))
-          .limit(1);
-
-        if (existing.length > 0) {
-          // Update existing
-          await db
-            .update(registrations)
-            .set({
-              source: input.source,
-              cip: input.cip,
-              lastName: input.lastName,
-              firstName: input.firstName,
-              chapter: input.chapter,
-              specialty: input.specialty,
-              phone: input.phone,
-              purchaseDate: input.purchaseDate,
-              dish: input.dish,
-            })
-            .where(eq(registrations.ticketNumber, input.ticketNumber));
-          updated++;
-        } else {
-          // Insert new
-          await db.insert(registrations).values({
-            ticketNumber: input.ticketNumber,
-            source: input.source,
-            cip: input.cip,
-            lastName: input.lastName,
-            firstName: input.firstName,
-            chapter: input.chapter,
-            specialty: input.specialty,
-            phone: input.phone,
-            purchaseDate: input.purchaseDate,
-            dish: input.dish,
-          });
-          inserted++;
-        }
-      } catch (rowErr) {
-        const msg =
-          rowErr instanceof Error
-            ? rowErr.message
-            : "Error al procesar fila";
-        errors.push(`Ticket ${input.ticketNumber}: ${msg}`);
-      }
+      uniqueInputsMap.set(input.ticketNumber, input);
     }
+    const uniqueInputs = Array.from(uniqueInputsMap.values());
+
+    // Get count before insert to calculate exact inserts vs updates
+    const beforeCountRes = await db.select({ count: sql<number>`count(*)` }).from(registrations);
+    const beforeCount = Number(beforeCountRes[0].count);
+
+    // Batch upsert in chunks of 500
+    const CHUNK_SIZE = 500;
+    for (let i = 0; i < uniqueInputs.length; i += CHUNK_SIZE) {
+      const chunk = uniqueInputs.slice(i, i + CHUNK_SIZE);
+      
+      await db.insert(registrations)
+        .values(chunk)
+        .onConflictDoUpdate({
+          target: registrations.ticketNumber,
+          set: {
+            source: sql`EXCLUDED.source`,
+            cip: sql`EXCLUDED.cip`,
+            lastName: sql`EXCLUDED.last_name`,
+            firstName: sql`EXCLUDED.first_name`,
+            chapter: sql`EXCLUDED.chapter`,
+            specialty: sql`EXCLUDED.specialty`,
+            phone: sql`EXCLUDED.phone`,
+            purchaseDate: sql`EXCLUDED.purchase_date`,
+            dish: sql`EXCLUDED.dish`,
+          }
+        });
+    }
+
+    // Get count after insert
+    const afterCountRes = await db.select({ count: sql<number>`count(*)` }).from(registrations);
+    const afterCount = Number(afterCountRes[0].count);
+
+    const inserted = afterCount - beforeCount;
+    const updated = uniqueInputs.length - inserted;
 
     return { success: true, counts: { inserted, updated }, errors };
   } catch (err) {
